@@ -1,4 +1,4 @@
-# Accordeur
+# according
 
 Accordeur de guitare simple et fluide, directement dans le navigateur.
 

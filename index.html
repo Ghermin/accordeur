@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0c10">
-<title>Accordeur</title>
+<title>according · accordeur de guitare</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,16 +52,49 @@
   header, main, footer { position: relative; z-index: 1; width: 100%; max-width: 460px; }
 
   header { text-align: center; }
-  header h1 {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 500;
-    font-size: 15px;
-    letter-spacing: .32em;
-    text-transform: uppercase;
-    color: var(--fg);
-    opacity: .9;
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    animation: rise .9s cubic-bezier(.2, .8, .2, 1) both;
   }
-  .controls { margin-top: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .brand svg {
+    width: 34px;
+    height: 34px;
+    filter: drop-shadow(0 6px 16px hsl(150 70% 50% / .35));
+    transition: transform .4s cubic-bezier(.2, .8, .2, 1);
+  }
+  body.tuned .brand svg { transform: scale(1.08) rotate(-4deg); }
+  .brand h1 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -.03em;
+    padding-bottom: 3px;
+    background: linear-gradient(100deg, var(--fg) 0%, var(--fg) 38%, #7ef0b4 50%, var(--fg) 62%, var(--fg) 100%);
+    background-size: 260% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 7s ease-in-out infinite;
+  }
+  .brand h1 span { font-weight: 300; }
+  @keyframes shimmer {
+    0%, 15% { background-position: 100% 0; }
+    65%, 100% { background-position: 0 0; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+  .controls { animation: rise .9s .12s cubic-bezier(.2, .8, .2, 1) both; }
+  main { animation: rise 1s .22s cubic-bezier(.2, .8, .2, 1) both; }
+  footer { animation: rise 1s .32s cubic-bezier(.2, .8, .2, 1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .brand, .controls, main, footer, .brand h1 { animation: none; }
+  }
+  .controls { margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .pill {
     position: relative;
     display: inline-flex;
@@ -279,7 +312,21 @@
   <div class="glow"></div>
 
   <header>
-    <h1>Accordeur</h1>
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="pick" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5ee39a" />
+            <stop offset="1" stop-color="#1fae79" />
+          </linearGradient>
+        </defs>
+        <path d="M32 3C49 3 61 9.5 61 22C61 38 43 56.5 32 61C21 56.5 3 38 3 22C3 9.5 15 3 32 3Z" fill="url(#pick)" />
+        <path d="M17.3 28.5A17 17 0 0 1 46.7 28.5" fill="none" stroke="#0a0c10" stroke-width="4.5" stroke-linecap="round" opacity=".35" />
+        <path id="logoNeedle" d="M32 37V17.5" stroke="#0a0c10" stroke-width="4.5" stroke-linecap="round" transform="rotate(20 32 37)" />
+        <circle cx="32" cy="37" r="5" fill="#0a0c10" />
+      </svg>
+      <h1>accord<span>ing</span></h1>
+    </div>
     <div class="controls">
       <label class="pill" title="Accordage">
         <svg class="lead" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
@@ -408,7 +455,7 @@
     note: $('note'), solfege: $('solfege'), cents: $('cents'), hint: $('hint'), freq: $('freq'),
     strings: $('strings'), auto: $('auto'), modeText: $('modeText'),
     overlay: $('overlay'), start: $('start'), error: $('error'),
-    tuning: $('tuning'), mic: $('mic'), micPill: $('micPill'),
+    tuning: $('tuning'), mic: $('mic'), micPill: $('micPill'), logoNeedle: $('logoNeedle'),
   };
 
   // ---------- Build static gauge ----------
@@ -547,9 +594,18 @@
   let ctx = null, input = null, analyser = null, timeBuf = null, wakeLock = null;
   let stream = null, source = null;
 
-  const micError = err => err.name === 'NotAllowedError'
-    ? 'Accès au micro refusé. Autorisez-le dans les réglages du navigateur.'
-    : 'Impossible d’accéder au micro (' + err.name + ').';
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  function micError(err) {
+    if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+      if (isIOS) return 'Accès au micro refusé. Touchez « aA » dans la barre d’adresse › Réglages du site › Micro › Autoriser, puis rechargez la page.';
+      if (isAndroid) return 'Accès au micro refusé. Touchez le cadenas à gauche de l’adresse › Autorisations › Micro, puis rechargez la page.';
+      return 'Accès au micro refusé. Cliquez sur le cadenas à gauche de l’adresse pour l’autoriser, puis rechargez la page.';
+    }
+    if (err.name === 'NotFoundError') return 'Aucun micro détecté. Branchez-en un puis réessayez.';
+    if (err.name === 'NotReadableError') return 'Le micro est déjà utilisé par une autre application (appel, enregistreur…). Fermez-la puis réessayez.';
+    return 'Impossible d’accéder au micro (' + err.name + ').';
+  }
 
   async function start() {
     el.error.textContent = '';
@@ -614,7 +670,8 @@
     }));
     if (currentId && devices.some(d => d.deviceId === currentId)) el.mic.value = currentId;
     el.micPill.title = el.mic.selectedOptions[0]?.textContent || 'Micro';
-    el.micPill.hidden = devices.length === 0;
+    // Only worth showing when there is a real choice (phones usually expose a single mic)
+    el.micPill.hidden = devices.filter(d => d.deviceId !== 'default').length < 2;
   }
 
   el.mic.addEventListener('change', async () => {
@@ -636,8 +693,14 @@
     if (document.visibilityState === 'visible' && ctx) {
       ctx.resume();
       requestWakeLock();
+      // Phones may kill the mic while in background (call, other app) → reopen it
+      if (stream && stream.getAudioTracks().every(t => t.readyState === 'ended')) {
+        openMic(store.get('mic')).catch(err => { el.error.textContent = micError(err); el.overlay.classList.remove('hidden'); });
+      }
     }
   });
+  // iOS can leave the context "interrupted" until the next touch
+  document.addEventListener('pointerdown', () => { if (ctx && ctx.state !== 'running') ctx.resume(); });
   el.start.addEventListener('click', start);
 
   // ---------- Animation loop ----------
@@ -647,7 +710,7 @@
     active: false, lastSeen: -1e9,
     freqDisp: 0, info: null,
     inTuneSince: 0, tuned: false,
-    hue: 220, sat: 12, glow: 0,
+    hue: 220, sat: 12, glow: 0, logoAngle: 20,
   };
   let lastT = performance.now();
   let lastNoteKey = '', lastHint = '', lastCents = '', lastFreq = '';
@@ -728,6 +791,9 @@
       node.setAttribute('cy', f2(my));
     }
     el.halo.setAttribute('r', s.tuned ? 18 : 14);
+    // Logo needle mirrors the gauge, resting slightly tilted when idle
+    s.logoAngle += ((s.active ? a * 180 / Math.PI * .8 : 20) - s.logoAngle) * .12;
+    el.logoNeedle.setAttribute('transform', `rotate(${s.logoAngle.toFixed(1)} 32 37)`);
 
     // Note
     const info = s.info;
