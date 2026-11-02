@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c10">
+<title>Accordeur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --fg: #eef1f5;
+    --muted: #7b8494;
+    --line: rgba(255, 255, 255, .08);
+    --accent: hsl(220 12% 62%);
+    --accent-soft: hsl(220 12% 62% / .12);
+    --accent-glow: hsl(220 12% 62% / .0);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { min-height: 100%; background: var(--bg); }
+
+  body {
+    min-height: 100dvh;
+    color: var(--fg);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: max(24px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  .glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(55vmax 45vmax at 50% 36%, var(--accent-glow), transparent 70%);
+    z-index: 0;
+  }
+
+  header, main, footer { position: relative; z-index: 1; width: 100%; max-width: 460px; }
+
+  header { text-align: center; }
+  header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    color: var(--fg);
+    opacity: .9;
+  }
+  .controls { margin-top: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .04);
+    color: var(--muted);
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .pill:hover, .pill:focus-within { border-color: rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .07); }
+  .pill[hidden] { display: none; }
+  .pill > svg { position: absolute; pointer-events: none; }
+  .pill > svg.lead { left: 12px; }
+  .pill > svg.chev { right: 11px; }
+  .pill select {
+    appearance: none;
+    -webkit-appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--fg);
+    font: 500 13px 'Inter', sans-serif;
+    padding: 8px 32px 8px 34px;
+    border-radius: 999px;
+    cursor: pointer;
+    outline: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .pill select option { background: #161a21; color: var(--fg); }
+  #micPill { max-width: 190px; }
+
+  main { display: flex; flex-direction: column; align-items: center; }
+
+  /* ---------- Gauge ---------- */
+  .gauge { position: relative; width: min(100%, 420px); aspect-ratio: 320 / 196; }
+  .gauge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+  .track { fill: none; stroke: rgba(255, 255, 255, .07); stroke-width: 6; stroke-linecap: round; }
+  .fill  { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
+  .tick { stroke: rgba(255, 255, 255, .16); stroke-width: 1.5; stroke-linecap: round; }
+  .tick.major { stroke: rgba(255, 255, 255, .32); stroke-width: 2; }
+  .tick.zero { stroke: rgba(255, 255, 255, .7); stroke-width: 2.5; }
+  .end-label { fill: var(--muted); font: 500 15px 'Inter', sans-serif; text-anchor: middle; dominant-baseline: middle; }
+  .marker-halo { fill: var(--accent); opacity: .35; }
+  .marker { fill: var(--accent); }
+  .marker-core { fill: #fff; }
+
+  .readout {
+    position: absolute;
+    left: 0; right: 0; bottom: 2%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: opacity .5s ease;
+  }
+  .note {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: clamp(84px, 25vw, 128px);
+    line-height: .9;
+    letter-spacing: -.02em;
+    display: flex;
+    align-items: flex-start;
+    color: var(--fg);
+    transition: color .3s ease, text-shadow .4s ease;
+  }
+  .note .acc { font-size: .42em; font-weight: 500; margin-top: .14em; margin-left: .02em; }
+  .note .oct { font-size: .26em; font-weight: 300; color: var(--muted); align-self: flex-end; margin-left: .06em; margin-bottom: .1em; }
+  .note .placeholder { color: rgba(255, 255, 255, .14); font-weight: 300; }
+  .solfege { margin-top: 6px; font-size: 14px; color: var(--muted); letter-spacing: .08em; height: 18px; }
+
+  body.idle .readout { opacity: .38; }
+  body.tuned .note { color: var(--accent); text-shadow: 0 0 40px var(--accent-glow); }
+
+  /* ---------- Status ---------- */
+  .status { margin-top: 26px; text-align: center; min-height: 82px; }
+  .cents {
+    font-family: 'Outfit', sans-serif;
+    font-size: 30px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+    height: 36px;
+  }
+  .cents small { font-size: .55em; color: var(--muted); margin-left: 5px; font-weight: 400; }
+  .hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    transition: background .3s ease, color .3s ease;
+  }
+  body.idle .hint { background: rgba(255, 255, 255, .05); color: var(--muted); }
+  .freq { margin-top: 10px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; height: 16px; letter-spacing: .04em; }
+
+  /* ---------- Strings ---------- */
+  footer { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .strings { display: flex; gap: 8px; width: 100%; justify-content: center; }
+  .string {
+    position: relative;
+    flex: 1 1 0;
+    max-width: 62px;
+    height: 64px;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .03);
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: transform .25s cubic-bezier(.2, .8, .2, 1), background .25s ease, border-color .25s ease, color .25s ease;
+  }
+  .string b { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 500; line-height: 1; }
+  .string b small { font-size: .6em; vertical-align: .45em; margin-left: 1px; }
+  .string span { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+  .string:hover { background: rgba(255, 255, 255, .06); }
+  .string:active { transform: scale(.95); }
+  .string.active { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-3px); }
+  .string.active b { color: var(--accent); }
+  .string.locked { border-color: rgba(255, 255, 255, .5); background: rgba(255, 255, 255, .1); }
+  .string.done::after {
+    content: '';
+    position: absolute;
+    top: 7px; right: 7px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: hsl(145 70% 55%);
+    box-shadow: 0 0 8px hsl(145 70% 55% / .8);
+  }
+
+  .mode { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+  .auto {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    font: 600 12px 'Inter', sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .25s ease;
+  }
+  .auto.on { color: var(--bg); background: var(--fg); border-color: var(--fg); }
+
+  /* ---------- Start overlay ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(10, 12, 16, .72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: opacity .5s ease, visibility .5s;
+  }
+  .overlay.hidden { opacity: 0; visibility: hidden; }
+  .card { text-align: center; max-width: 320px; }
+  .card .icon {
+    width: 76px; height: 76px;
+    margin: 0 auto 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 50% 40%, hsl(145 70% 55% / .25), hsl(145 70% 55% / .05));
+    border: 1px solid hsl(145 70% 55% / .35);
+    color: hsl(145 70% 62%);
+  }
+  .card h2 { font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 26px; }
+  .card p { margin-top: 10px; font-size: 14px; line-height: 1.55; color: var(--muted); }
+  .start {
+    margin-top: 26px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 26px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--fg);
+    color: var(--bg);
+    font: 600 15px 'Inter', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 10px 40px -10px rgba(255, 255, 255, .35);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .start:hover { transform: translateY(-1px); box-shadow: 0 14px 44px -10px rgba(255, 255, 255, .45); }
+  .start:active { transform: scale(.97); }
+  .error { margin-top: 16px; font-size: 13px; color: hsl(10 85% 66%); min-height: 18px; }
+
+  @media (max-height: 640px) {
+    body { gap: 12px; }
+    .status { margin-top: 14px; }
+  }
+</style>
+</head>
+<body class="idle">
+  <div class="glow"></div>
+
+  <header>
+    <h1>Accordeur</h1>
+    <div class="controls">
+      <label class="pill" title="Accordage">
+        <svg class="lead" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+        <select id="tuning" aria-label="Accordage"></select>
+        <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+      </label>
+      <label class="pill" id="micPill" title="Micro" hidden>
+        <svg class="lead" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /></svg>
+        <select id="mic" aria-label="Micro"></select>
+        <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <div class="gauge">
+      <svg viewBox="0 0 320 196" aria-hidden="true">
+        <defs>
+          <filter id="blur" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="6" />
+          </filter>
+        </defs>
+        <g id="ticks"></g>
+        <path id="track" class="track" />
+        <path id="fill" class="fill" />
+        <text class="end-label" id="flat">♭</text>
+        <text class="end-label" id="sharp">♯</text>
+        <circle id="halo" class="marker-halo" r="14" filter="url(#blur)" />
+        <circle id="marker" class="marker" r="8" />
+        <circle id="markerCore" class="marker-core" r="3" />
+      </svg>
+      <div class="readout">
+        <div class="note" id="note"><span class="placeholder">–</span></div>
+        <div class="solfege" id="solfege"></div>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="cents" id="cents">&nbsp;</div>
+      <div class="hint" id="hint">Jouez une corde</div>
+      <div class="freq" id="freq"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="strings" id="strings"></div>
+    <div class="mode">
+      <button class="auto on" id="auto">Auto</button>
+      <span id="modeText">Touchez une corde pour la verrouiller</span>
+    </div>
+  </footer>
+
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <div class="icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="11" rx="3" />
+          <path d="M5 11a7 7 0 0 0 14 0" />
+          <path d="M12 18v3" />
+        </svg>
+      </div>
+      <h2>Prêt à accorder ?</h2>
+      <p>L'accordeur écoute votre guitare via le micro. Rien n'est enregistré ni envoyé.</p>
+      <button class="start" id="start">Activer le micro</button>
+      <div class="error" id="error"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+  const SOLFEGE = ['Do', 'Do♯', 'Ré', 'Ré♯', 'Mi', 'Fa', 'Fa♯', 'Sol', 'Sol♯', 'La', 'La♯', 'Si'];
+  const midiToFreq = m => 440 * Math.pow(2, (m - 69) / 12);
+
+  const TUNINGS = [
+    { id: 'standard',  label: 'Standard',          notes: 'E2 A2 D3 G3 B3 E4' },
+    { id: 'drop-d',    label: 'Drop D',            notes: 'D2 A2 D3 G3 B3 E4' },
+    { id: 'half-down', label: 'Demi-ton plus bas', notes: 'E♭2 A♭2 D♭3 G♭3 B♭3 E♭4' },
+    { id: 'full-down', label: 'Un ton plus bas',   notes: 'D2 G2 C3 F3 A3 D4' },
+    { id: 'drop-c',    label: 'Drop C',            notes: 'C2 G2 C3 F3 A3 D4' },
+    { id: 'dadgad',    label: 'DADGAD',            notes: 'D2 A2 D3 G3 A3 D4' },
+    { id: 'open-g',    label: 'Open G',            notes: 'D2 G2 D3 G3 B3 D4' },
+    { id: 'open-d',    label: 'Open D',            notes: 'D2 A2 D3 F♯3 A3 D4' },
+    { id: 'open-e',    label: 'Open E',            notes: 'E2 B2 E3 G♯3 B3 E4' },
+  ];
+
+  // Parse "F♯3" / "E♭2" keeping the tuning's own spelling (flats stay flats)
+  const LETTER_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const LETTER_SOLFEGE = { C: 'Do', D: 'Ré', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si' };
+  function parseNote(str) {
+    const [, letter, acc, oct] = str.match(/^([A-G])([♯♭]?)(\d)$/);
+    const shift = acc === '♯' ? 1 : acc === '♭' ? -1 : 0;
+    const midi = LETTER_PC[letter] + shift + (+oct + 1) * 12;
+    return { midi, freq: midiToFreq(midi), name: letter + acc, solfege: LETTER_SOLFEGE[letter] + acc, octave: +oct };
+  }
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
+  };
+
+  let STRINGS = [];
+
+  // Detection settings
+  const MIN_F = 60, MAX_F = 1200;
+  const YIN_THRESHOLD = 0.15;
+  const RMS_GATE = 0.008;
+  const HOLD_MS = 450;          // keep showing a note this long after the signal drops
+  const TUNED_CENTS = 4;        // within this → in tune
+  const TUNED_HOLD_MS = 450;
+
+  // Gauge geometry (SVG units)
+  const CX = 160, CY = 178, R = 136, AMAX = 70 * Math.PI / 180;
+  const pt = (a, r = R) => [CX + r * Math.sin(a), CY - r * Math.cos(a)];
+  const f2 = n => n.toFixed(2);
+  const arcPath = (a0, a1, r = R) => {
+    const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r);
+    return `M${f2(x0)} ${f2(y0)} A${r} ${r} 0 0 ${a1 > a0 ? 1 : 0} ${f2(x1)} ${f2(y1)}`;
+  };
+
+  const $ = id => document.getElementById(id);
+  const el = {
+    body: document.body, root: document.documentElement,
+    ticks: $('ticks'), track: $('track'), fill: $('fill'),
+    halo: $('halo'), marker: $('marker'), markerCore: $('markerCore'),
+    note: $('note'), solfege: $('solfege'), cents: $('cents'), hint: $('hint'), freq: $('freq'),
+    strings: $('strings'), auto: $('auto'), modeText: $('modeText'),
+    overlay: $('overlay'), start: $('start'), error: $('error'),
+    tuning: $('tuning'), mic: $('mic'), micPill: $('micPill'),
+  };
+
+  // ---------- Build static gauge ----------
+  el.track.setAttribute('d', arcPath(-AMAX, AMAX));
+  for (let c = -50; c <= 50; c += 5) {
+    const a = c / 50 * AMAX;
+    const major = c % 25 === 0;
+    const [x0, y0] = pt(a, R - 14);
+    const [x1, y1] = pt(a, R - (c === 0 ? 30 : major ? 26 : 20));
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', f2(x0)); line.setAttribute('y1', f2(y0));
+    line.setAttribute('x2', f2(x1)); line.setAttribute('y2', f2(y1));
+    line.setAttribute('class', 'tick' + (c === 0 ? ' zero' : major ? ' major' : ''));
+    el.ticks.appendChild(line);
+  }
+  const [fx, fy] = pt(-AMAX - .16, R + 2), [sx, sy] = pt(AMAX + .16, R + 2);
+  $('flat').setAttribute('x', f2(fx)); $('flat').setAttribute('y', f2(fy));
+  $('sharp').setAttribute('x', f2(sx)); $('sharp').setAttribute('y', f2(sy));
+
+  // ---------- Tuning + string buttons ----------
+  let lockedString = null;      // null = auto
+  const tunedStrings = new Set();
+  let stringButtons = [];
+
+  for (const t of TUNINGS) {
+    const o = document.createElement('option');
+    o.value = t.id;
+    o.textContent = `${t.label} · ${t.notes.replace(/\d/g, '')}`;
+    el.tuning.appendChild(o);
+  }
+  el.tuning.addEventListener('change', () => setTuning(el.tuning.value));
+
+  function setTuning(id) {
+    const tuning = TUNINGS.find(t => t.id === id) || TUNINGS[0];
+    el.tuning.value = tuning.id;
+    store.set('tuning', tuning.id);
+    STRINGS = tuning.notes.split(' ').map(parseNote);
+    tunedStrings.clear();
+    el.strings.replaceChildren();
+    stringButtons = STRINGS.map((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'string';
+      const acc = s.name.slice(1);
+      b.innerHTML = `<b>${s.name[0]}${acc ? `<small>${acc}</small>` : ''}</b><span>${s.solfege}</span>`;
+      b.setAttribute('aria-label', `Corde ${6 - i} : ${s.name}${s.octave}`);
+      b.addEventListener('click', () => setLock(lockedString === i ? null : i));
+      el.strings.appendChild(b);
+      return b;
+    });
+    setLock(null);
+  }
+  el.auto.addEventListener('click', () => setLock(null));
+
+  function setLock(i) {
+    lockedString = i;
+    el.auto.classList.toggle('on', i === null);
+    stringButtons.forEach((b, j) => b.classList.toggle('locked', j === i));
+    el.modeText.textContent = i === null
+      ? 'Touchez une corde pour la verrouiller'
+      : `Corde ${6 - i} verrouillée · ${STRINGS[i].name}${STRINGS[i].octave}`;
+    hist.length = 0;
+  }
+
+  // ---------- Pitch detection (YIN) ----------
+  let yinBuf = null;
+  function detectPitch(buf, sampleRate) {
+    let rms = 0;
+    for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / buf.length);
+    if (rms < RMS_GATE) return null;
+
+    const maxTau = Math.min(Math.floor(sampleRate / MIN_F), buf.length >> 1);
+    const minTau = Math.max(2, Math.floor(sampleRate / MAX_F));
+    const W = Math.min(buf.length - maxTau, 2048);
+    if (!yinBuf || yinBuf.length < maxTau + 2) yinBuf = new Float32Array(maxTau + 2);
+    const d = yinBuf;
+
+    // Cumulative mean normalized difference
+    d[0] = 1;
+    let running = 0;
+    for (let tau = 1; tau <= maxTau; tau++) {
+      let sum = 0;
+      for (let i = 0; i < W; i++) {
+        const diff = buf[i] - buf[i + tau];
+        sum += diff * diff;
+      }
+      running += sum;
+      d[tau] = running > 0 ? sum * tau / running : 1;
+    }
+
+    let tau = -1;
+    for (let t = minTau; t <= maxTau; t++) {
+      if (d[t] < YIN_THRESHOLD) {
+        while (t + 1 <= maxTau && d[t + 1] < d[t]) t++;
+        tau = t;
+        break;
+      }
+    }
+    if (tau < 0) return null;
+
+    // Parabolic interpolation for sub-sample precision
+    const x0 = d[tau - 1], x1 = d[tau], x2 = tau + 1 <= maxTau ? d[tau + 1] : x1;
+    const denom = x0 + x2 - 2 * x1;
+    const shift = denom !== 0 ? (x0 - x2) / (2 * denom) : 0;
+    return sampleRate / (tau + shift);
+  }
+
+  const median = arr => {
+    const s = [...arr].sort((a, b) => a - b);
+    const m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
+
+  function analyze(freq) {
+    if (lockedString !== null) {
+      const s = STRINGS[lockedString];
+      return { ...s, cents: 1200 * Math.log2(freq / s.freq), string: lockedString };
+    }
+    const m = 69 + 12 * Math.log2(freq / 440);
+    const n = Math.round(m);
+    const cents = (m - n) * 100;
+    const string = STRINGS.findIndex(s => s.midi === n);
+    // Matching an open string → use the tuning's spelling (E♭ rather than D♯)
+    if (string >= 0) return { ...STRINGS[string], cents, string };
+    const pc = ((n % 12) + 12) % 12;
+    return {
+      name: NAMES[pc],
+      solfege: SOLFEGE[pc],
+      octave: Math.floor(n / 12) - 1,
+      cents,
+      string,
+    };
+  }
+
+  // ---------- Audio ----------
+  let ctx = null, input = null, analyser = null, timeBuf = null, wakeLock = null;
+  let stream = null, source = null;
+
+  const micError = err => err.name === 'NotAllowedError'
+    ? 'Accès au micro refusé. Autorisez-le dans les réglages du navigateur.'
+    : 'Impossible d’accéder au micro (' + err.name + ').';
+
+  async function start() {
+    el.error.textContent = '';
+    if (!navigator.mediaDevices?.getUserMedia) {
+      el.error.textContent = 'Micro indisponible : ouvrez la page en HTTPS ou sur localhost.';
+      return;
+    }
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 55;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1500;
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 4096;
+      timeBuf = new Float32Array(analyser.fftSize);
+      hp.connect(lp).connect(analyser);
+      input = hp;
+
+      await openMic(store.get('mic'));
+      if (ctx.state === 'suspended') await ctx.resume();
+      el.overlay.classList.add('hidden');
+      requestWakeLock();
+    } catch (err) {
+      ctx?.close();
+      ctx = analyser = null;
+      el.error.textContent = micError(err);
+    }
+  }
+
+  async function openMic(deviceId) {
+    const constraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    let next;
+    try {
+      next = await navigator.mediaDevices.getUserMedia({
+        audio: deviceId ? { ...constraints, deviceId: { exact: deviceId } } : constraints,
+      });
+    } catch (err) {
+      // Remembered mic unplugged → fall back to the default one
+      if (!deviceId || err.name !== 'OverconstrainedError' && err.name !== 'NotFoundError') throw err;
+      next = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+    }
+    source?.disconnect();
+    stream?.getTracks().forEach(t => t.stop());
+    stream = next;
+    source = ctx.createMediaStreamSource(stream);
+    source.connect(input);
+    hist.length = 0;
+    await refreshMics();
+  }
+
+  async function refreshMics() {
+    const devices = (await navigator.mediaDevices.enumerateDevices())
+      .filter(d => d.kind === 'audioinput' && d.deviceId !== 'communications');
+    const current = stream?.getAudioTracks()[0];
+    const currentId = current?.getSettings().deviceId;
+    el.mic.replaceChildren(...devices.map((d, i) => {
+      const o = document.createElement('option');
+      o.value = d.deviceId;
+      o.textContent = d.label || `Micro ${i + 1}`;
+      return o;
+    }));
+    if (currentId && devices.some(d => d.deviceId === currentId)) el.mic.value = currentId;
+    el.micPill.title = el.mic.selectedOptions[0]?.textContent || 'Micro';
+    el.micPill.hidden = devices.length === 0;
+  }
+
+  el.mic.addEventListener('change', async () => {
+    const id = el.mic.value;
+    store.set('mic', id);
+    try { await openMic(id); } catch (err) { alert(micError(err)); refreshMics(); }
+  });
+  navigator.mediaDevices?.addEventListener?.('devicechange', () => {
+    if (!stream) return;
+    const ended = stream.getAudioTracks().every(t => t.readyState === 'ended');
+    (ended ? openMic(null) : refreshMics()).catch(() => {});
+  });
+
+  async function requestWakeLock() {
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch { /* optional */ }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && ctx) {
+      ctx.resume();
+      requestWakeLock();
+    }
+  });
+  el.start.addEventListener('click', start);
+
+  // ---------- Animation loop ----------
+  const hist = [];
+  const s = {
+    pos: 0, vel: 0, target: 0,
+    active: false, lastSeen: -1e9,
+    freqDisp: 0, info: null,
+    inTuneSince: 0, tuned: false,
+    hue: 220, sat: 12, glow: 0,
+  };
+  let lastT = performance.now();
+  let lastNoteKey = '', lastHint = '', lastCents = '', lastFreq = '';
+
+  function frame(t) {
+    const dt = Math.min((t - lastT) / 1000, 0.05);
+    lastT = t;
+
+    if (analyser) {
+      analyser.getFloatTimeDomainData(timeBuf);
+      const f = detectPitch(timeBuf, ctx.sampleRate);
+      if (f && f >= MIN_F && f <= MAX_F) {
+        hist.push(f);
+        if (hist.length > 5) hist.shift();
+        s.lastSeen = t;
+      }
+    }
+
+    if (t - s.lastSeen > HOLD_MS) hist.length = 0;
+    s.active = hist.length >= 2;
+
+    if (s.active) {
+      const f = median(hist);
+      s.info = analyze(f);
+      s.target = Math.max(-50, Math.min(50, s.info.cents));
+      s.freqDisp = s.freqDisp ? s.freqDisp + (f - s.freqDisp) * Math.min(1, dt * 12) : f;
+    } else {
+      s.target = 0;
+      s.freqDisp = 0;
+    }
+
+    // Critically-damped-ish spring for a silky needle
+    const k = 140, c = 2 * Math.sqrt(k) * 0.95;
+    s.vel += (k * (s.target - s.pos) - c * s.vel) * dt;
+    s.pos += s.vel * dt;
+
+    // In-tune detection with hysteresis
+    const absC = Math.abs(s.active ? s.info.cents : 99);
+    if (s.active && absC <= TUNED_CENTS) {
+      if (!s.inTuneSince) s.inTuneSince = t;
+      if (!s.tuned && t - s.inTuneSince > TUNED_HOLD_MS) {
+        s.tuned = true;
+        navigator.vibrate?.(30);
+        if (s.info.string >= 0) tunedStrings.add(s.info.string);
+      }
+    } else if (!s.active || absC > TUNED_CENTS * 2) {
+      s.inTuneSince = 0;
+      s.tuned = false;
+    }
+
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  function render() {
+    // Color: green when centered, sliding to warm red at the edges; slate when idle
+    const off = Math.min(Math.abs(s.pos) / 40, 1);
+    const tHue = s.active ? 145 - 135 * Math.pow(off, 0.7) : 220;
+    const tSat = s.active ? 78 : 12;
+    const tGlow = s.active ? (s.tuned ? 0.32 : 0.16) : 0;
+    s.hue += (tHue - s.hue) * 0.15;
+    s.sat += (tSat - s.sat) * 0.15;
+    s.glow += (tGlow - s.glow) * 0.08;
+    const h = s.hue.toFixed(1), sat = s.sat.toFixed(1);
+    el.root.style.setProperty('--accent', `hsl(${h} ${sat}% 60%)`);
+    el.root.style.setProperty('--accent-soft', `hsl(${h} ${sat}% 60% / .13)`);
+    el.root.style.setProperty('--accent-glow', `hsl(${h} ${sat}% 55% / ${s.glow.toFixed(3)})`);
+
+    el.body.classList.toggle('idle', !s.active);
+    el.body.classList.toggle('tuned', s.tuned);
+
+    // Gauge
+    const a = Math.max(-1.04, Math.min(1.04, s.pos / 50)) * AMAX;
+    const [mx, my] = pt(a);
+    el.fill.setAttribute('d', Math.abs(a) < 0.002 ? '' : arcPath(0, a));
+    for (const node of [el.halo, el.marker, el.markerCore]) {
+      node.setAttribute('cx', f2(mx));
+      node.setAttribute('cy', f2(my));
+    }
+    el.halo.setAttribute('r', s.tuned ? 18 : 14);
+
+    // Note
+    const info = s.info;
+    const noteKey = info ? info.name + info.octave : '';
+    if (noteKey !== lastNoteKey) {
+      lastNoteKey = noteKey;
+      const letter = info.name[0], acc = info.name.slice(1);
+      el.note.innerHTML = `${letter}${acc ? `<span class="acc">${acc}</span>` : ''}<span class="oct">${info.octave}</span>`;
+      el.solfege.textContent = info.solfege;
+    }
+
+    // Cents
+    let centsHtml = '&nbsp;';
+    if (s.active) {
+      const v = Math.round(s.info.cents);
+      const shown = Math.abs(v) > 99 ? (v > 0 ? '>+99' : '<−99') : (v > 0 ? '+' + v : v < 0 ? '−' + -v : '0');
+      centsHtml = `${shown}<small>cents</small>`;
+    }
+    if (centsHtml !== lastCents) { el.cents.innerHTML = centsHtml; lastCents = centsHtml; }
+
+    // Hint
+    let hint = 'Jouez une corde';
+    if (s.active) {
+      const c = s.info.cents;
+      if (s.tuned || Math.abs(c) <= TUNED_CENTS) hint = 'Accordé ✓';
+      else if (c < -35) hint = 'Bien trop bas · tendez';
+      else if (c < 0) hint = 'Un peu bas · tendez';
+      else if (c > 35) hint = 'Bien trop haut · détendez';
+      else hint = 'Un peu haut · détendez';
+    }
+    if (hint !== lastHint) { el.hint.textContent = hint; lastHint = hint; }
+
+    const freqText = s.active ? s.freqDisp.toFixed(1) + ' Hz' : '';
+    if (freqText !== lastFreq) { el.freq.textContent = freqText; lastFreq = freqText; }
+
+    // Strings
+    stringButtons.forEach((b, i) => {
+      b.classList.toggle('active', s.active && info && info.string === i);
+      b.classList.toggle('done', tunedStrings.has(i));
+    });
+  }
+
+  setTuning(store.get('tuning'));
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
