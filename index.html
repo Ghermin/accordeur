@@ -3,21 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a0c10">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0c10" media="(prefers-color-scheme: dark)">
 <title>according · accordeur de guitare</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="playground.css">
 <style>
   :root {
-    --bg: #0a0c10;
-    --fg: #eef1f5;
-    --muted: #7b8494;
-    --line: rgba(255, 255, 255, .08);
-    --accent: hsl(220 12% 62%);
+    --bg: #f4f6f8;
+    --fg: #12151b;
+    --muted: #5f6878;
+    --surface: #ffffff;
+    --ok: hsl(150 70% 36%);
+    --danger: hsl(5 70% 46%);
+    --line: color-mix(in srgb, var(--fg) 10%, transparent);
+    --accent-l: 40%;
+    --accent: hsl(220 12% 50%);
     --accent-soft: hsl(220 12% 62% / .12);
     --accent-glow: hsl(220 12% 62% / .0);
+
+    --pg-bg: var(--bg); --pg-surface: var(--surface); --pg-text: var(--fg); --pg-muted: var(--muted);
+    --pg-line: var(--line); --pg-accent: var(--ok);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0c10;
+      --fg: #eef1f5;
+      --muted: #7b8494;
+      --surface: #161a21;
+      --ok: hsl(145 70% 55%);
+      --danger: hsl(10 85% 66%);
+      --line: color-mix(in srgb, var(--fg) 8%, transparent);
+      --accent-l: 60%;
+      --accent: hsl(220 12% 62%);
+    }
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,14 +50,14 @@
   body {
     min-height: 100dvh;
     color: var(--fg);
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    padding: max(24px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+    padding: 0 16px max(28px, env(safe-area-inset-bottom));
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -50,6 +73,8 @@
   }
 
   header, main, footer { position: relative; z-index: 1; width: 100%; max-width: 460px; }
+  .pg-strip { align-self: stretch; margin: 0 -16px; padding-top: env(safe-area-inset-top); }
+  .pg-strip__in { width: min(460px, 100% - 32px); }
 
   header { text-align: center; }
   .brand {
@@ -102,11 +127,11 @@
     max-width: 100%;
     border: 1px solid var(--line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .04);
+    background: color-mix(in srgb, var(--fg) 4%, transparent);
     color: var(--muted);
     transition: border-color .2s ease, background .2s ease;
   }
-  .pill:hover, .pill:focus-within { border-color: rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .07); }
+  .pill:hover, .pill:focus-within { border-color: color-mix(in srgb, var(--fg) 20%, transparent); background: color-mix(in srgb, var(--fg) 7%, transparent); }
   .pill[hidden] { display: none; }
   .pill > svg { position: absolute; pointer-events: none; }
   .pill > svg.lead { left: 12px; }
@@ -119,7 +144,7 @@
     border: 0;
     background: transparent;
     color: var(--fg);
-    font: 500 13px 'Inter', sans-serif;
+    font: 500 13px 'Outfit', sans-serif;
     padding: 8px 32px 8px 34px;
     border-radius: 999px;
     cursor: pointer;
@@ -128,7 +153,7 @@
     white-space: nowrap;
     overflow: hidden;
   }
-  .pill select option { background: #161a21; color: var(--fg); }
+  .pill select option { background: var(--surface); color: var(--fg); }
   #micPill { max-width: 190px; }
 
   main { display: flex; flex-direction: column; align-items: center; }
@@ -137,12 +162,12 @@
   .gauge { position: relative; width: min(100%, 420px); aspect-ratio: 320 / 196; }
   .gauge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
-  .track { fill: none; stroke: rgba(255, 255, 255, .07); stroke-width: 6; stroke-linecap: round; }
+  .track { fill: none; stroke: color-mix(in srgb, var(--fg) 7%, transparent); stroke-width: 6; stroke-linecap: round; }
   .fill  { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
-  .tick { stroke: rgba(255, 255, 255, .16); stroke-width: 1.5; stroke-linecap: round; }
-  .tick.major { stroke: rgba(255, 255, 255, .32); stroke-width: 2; }
-  .tick.zero { stroke: rgba(255, 255, 255, .7); stroke-width: 2.5; }
-  .end-label { fill: var(--muted); font: 500 15px 'Inter', sans-serif; text-anchor: middle; dominant-baseline: middle; }
+  .tick { stroke: color-mix(in srgb, var(--fg) 16%, transparent); stroke-width: 1.5; stroke-linecap: round; }
+  .tick.major { stroke: color-mix(in srgb, var(--fg) 32%, transparent); stroke-width: 2; }
+  .tick.zero { stroke: color-mix(in srgb, var(--fg) 70%, transparent); stroke-width: 2.5; }
+  .end-label { fill: var(--muted); font: 500 15px 'Outfit', sans-serif; text-anchor: middle; dominant-baseline: middle; }
   .marker-halo { fill: var(--accent); opacity: .35; }
   .marker { fill: var(--accent); }
   .marker-core { fill: #fff; }
@@ -168,7 +193,7 @@
   }
   .note .acc { font-size: .42em; font-weight: 500; margin-top: .14em; margin-left: .02em; }
   .note .oct { font-size: .26em; font-weight: 300; color: var(--muted); align-self: flex-end; margin-left: .06em; margin-bottom: .1em; }
-  .note .placeholder { color: rgba(255, 255, 255, .14); font-weight: 300; }
+  .note .placeholder { color: color-mix(in srgb, var(--fg) 14%, transparent); font-weight: 300; }
   .solfege { margin-top: 6px; font-size: 14px; color: var(--muted); letter-spacing: .08em; height: 18px; }
 
   body.idle .readout { opacity: .38; }
@@ -199,7 +224,7 @@
     letter-spacing: .02em;
     transition: background .3s ease, color .3s ease;
   }
-  body.idle .hint { background: rgba(255, 255, 255, .05); color: var(--muted); }
+  body.idle .hint { background: color-mix(in srgb, var(--fg) 5%, transparent); color: var(--muted); }
   .freq { margin-top: 10px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; height: 16px; letter-spacing: .04em; }
 
   /* ---------- Strings ---------- */
@@ -212,7 +237,7 @@
     height: 64px;
     border-radius: 18px;
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .03);
+    background: color-mix(in srgb, var(--fg) 3%, transparent);
     color: var(--fg);
     font: inherit;
     cursor: pointer;
@@ -226,19 +251,19 @@
   .string b { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 500; line-height: 1; }
   .string b small { font-size: .6em; vertical-align: .45em; margin-left: 1px; }
   .string span { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
-  .string:hover { background: rgba(255, 255, 255, .06); }
+  .string:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
   .string:active { transform: scale(.95); }
   .string.active { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-3px); }
   .string.active b { color: var(--accent); }
-  .string.locked { border-color: rgba(255, 255, 255, .5); background: rgba(255, 255, 255, .1); }
+  .string.locked { border-color: color-mix(in srgb, var(--fg) 50%, transparent); background: color-mix(in srgb, var(--fg) 10%, transparent); }
   .string.done::after {
     content: '';
     position: absolute;
     top: 7px; right: 7px;
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: hsl(145 70% 55%);
-    box-shadow: 0 0 8px hsl(145 70% 55% / .8);
+    background: var(--ok);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 80%, transparent);
   }
 
   .mode { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
@@ -246,7 +271,7 @@
     border: 1px solid var(--line);
     background: transparent;
     color: var(--muted);
-    font: 600 12px 'Inter', sans-serif;
+    font: 600 12px 'Outfit', sans-serif;
     letter-spacing: .08em;
     text-transform: uppercase;
     padding: 6px 12px;
@@ -264,7 +289,7 @@
     display: grid;
     place-items: center;
     padding: 16px;
-    background: rgba(10, 12, 16, .72);
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     transition: opacity .5s ease, visibility .5s;
@@ -277,9 +302,9 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: radial-gradient(circle at 50% 40%, hsl(145 70% 55% / .25), hsl(145 70% 55% / .05));
-    border: 1px solid hsl(145 70% 55% / .35);
-    color: hsl(145 70% 62%);
+    background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--ok) 25%, transparent), color-mix(in srgb, var(--ok) 5%, transparent));
+    border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
+    color: var(--ok);
   }
   .card h2 { font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 26px; }
   .card p { margin-top: 10px; font-size: 14px; line-height: 1.55; color: var(--muted); }
@@ -293,14 +318,14 @@
     border-radius: 999px;
     background: var(--fg);
     color: var(--bg);
-    font: 600 15px 'Inter', sans-serif;
+    font: 600 15px 'Outfit', sans-serif;
     cursor: pointer;
-    box-shadow: 0 10px 40px -10px rgba(255, 255, 255, .35);
+    box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--fg) 35%, transparent);
     transition: transform .2s ease, box-shadow .2s ease;
   }
-  .start:hover { transform: translateY(-1px); box-shadow: 0 14px 44px -10px rgba(255, 255, 255, .45); }
+  .start:hover { transform: translateY(-1px); box-shadow: 0 14px 44px -10px color-mix(in srgb, var(--fg) 45%, transparent); }
   .start:active { transform: scale(.97); }
-  .error { margin-top: 16px; font-size: 13px; color: hsl(10 85% 66%); min-height: 18px; }
+  .error { margin-top: 16px; font-size: 13px; color: var(--danger); min-height: 18px; }
 
   @media (max-height: 640px) {
     body { gap: 12px; }
@@ -309,6 +334,15 @@
 </style>
 </head>
 <body class="idle">
+  <nav class="pg-strip" aria-label="Bored Dev Playground">
+    <div class="pg-strip__in">
+      <a class="pg-strip__home" href="https://ghermin.github.io/">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="pg-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#ff6b6b"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#pg-logo)"/><path d="M14 27h14M36 27h14" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><path d="M16 27a5 5 0 0 0 10 0zM38 27a5 5 0 0 0 10 0z" fill="#fff"/><rect x="24" y="41" width="16" height="4.5" rx="2.25" fill="#fff"/></svg>
+        <b>bored dev playground</b><span class="pg-strip__crumb">/ accordeur</span>
+      </a>
+      <a class="pg-strip__all" href="https://ghermin.github.io/">tous les projets <span aria-hidden="true">→</span></a>
+    </div>
+  </nav>
   <div class="glow"></div>
 
   <header>
@@ -765,6 +799,12 @@
     requestAnimationFrame(frame);
   }
 
+  // Lightness of the accent follows the theme (darker on the light background)
+  let accentLightness = 60;
+  const readLightness = () => { accentLightness = parseFloat(getComputedStyle(el.root).getPropertyValue('--accent-l')) || 60; };
+  readLightness();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readLightness);
+
   function render() {
     // Color: green when centered, sliding to warm red at the edges; slate when idle
     const off = Math.min(Math.abs(s.pos) / 40, 1);
@@ -774,10 +814,10 @@
     s.hue += (tHue - s.hue) * 0.15;
     s.sat += (tSat - s.sat) * 0.15;
     s.glow += (tGlow - s.glow) * 0.08;
-    const h = s.hue.toFixed(1), sat = s.sat.toFixed(1);
-    el.root.style.setProperty('--accent', `hsl(${h} ${sat}% 60%)`);
-    el.root.style.setProperty('--accent-soft', `hsl(${h} ${sat}% 60% / .13)`);
-    el.root.style.setProperty('--accent-glow', `hsl(${h} ${sat}% 55% / ${s.glow.toFixed(3)})`);
+    const h = s.hue.toFixed(1), sat = s.sat.toFixed(1), l = accentLightness;
+    el.root.style.setProperty('--accent', `hsl(${h} ${sat}% ${l}%)`);
+    el.root.style.setProperty('--accent-soft', `hsl(${h} ${sat}% ${l}% / .13)`);
+    el.root.style.setProperty('--accent-glow', `hsl(${h} ${sat}% ${l - 5}% / ${s.glow.toFixed(3)})`);
 
     el.body.classList.toggle('idle', !s.active);
     el.body.classList.toggle('tuned', s.tuned);
