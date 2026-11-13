@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="playground.css">
 <style>
   :root {
@@ -52,7 +52,7 @@
   body {
     min-height: 100dvh;
     color: var(--fg);
-    font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family: var(--pg-font);
     -webkit-font-smoothing: antialiased;
     display: flex;
     flex-direction: column;
@@ -93,7 +93,7 @@
   }
   body.tuned .brand svg { transform: scale(1.08) rotate(-4deg); }
   .brand h1 {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--pg-font);
     font-weight: 700;
     font-size: 30px;
     line-height: 1;
@@ -146,7 +146,7 @@
     border: 0;
     background: transparent;
     color: var(--fg);
-    font: 500 13px 'Outfit', sans-serif;
+    font: 500 13px var(--pg-font);
     padding: 8px 32px 8px 34px;
     border-radius: 999px;
     cursor: pointer;
@@ -169,7 +169,7 @@
   .tick { stroke: color-mix(in srgb, var(--fg) 16%, transparent); stroke-width: 1.5; stroke-linecap: round; }
   .tick.major { stroke: color-mix(in srgb, var(--fg) 32%, transparent); stroke-width: 2; }
   .tick.zero { stroke: color-mix(in srgb, var(--fg) 70%, transparent); stroke-width: 2.5; }
-  .end-label { fill: var(--muted); font: 500 15px 'Outfit', sans-serif; text-anchor: middle; dominant-baseline: middle; }
+  .end-label { fill: var(--muted); font: 500 15px var(--pg-font); text-anchor: middle; dominant-baseline: middle; }
   .marker-halo { fill: var(--accent); opacity: .35; }
   .marker { fill: var(--accent); }
   .marker-core { fill: #fff; }
@@ -183,7 +183,7 @@
     transition: opacity .5s ease;
   }
   .note {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--pg-font);
     font-weight: 700;
     font-size: clamp(84px, 25vw, 128px);
     line-height: .9;
@@ -204,7 +204,7 @@
   /* ---------- Status ---------- */
   .status { margin-top: 26px; text-align: center; min-height: 82px; }
   .cents {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--pg-font);
     font-size: 30px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
@@ -250,7 +250,7 @@
     gap: 2px;
     transition: transform .25s cubic-bezier(.2, .8, .2, 1), background .25s ease, border-color .25s ease, color .25s ease;
   }
-  .string b { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 500; line-height: 1; }
+  .string b { font-family: var(--pg-font); font-size: 22px; font-weight: 500; line-height: 1; }
   .string b small { font-size: .6em; vertical-align: .45em; margin-left: 1px; }
   .string span { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
   .string:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
@@ -273,7 +273,7 @@
     border: 1px solid var(--line);
     background: transparent;
     color: var(--muted);
-    font: 600 12px 'Outfit', sans-serif;
+    font: 600 12px var(--pg-font);
     letter-spacing: .08em;
     text-transform: uppercase;
     padding: 6px 12px;
@@ -308,7 +308,7 @@
     border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
     color: var(--ok);
   }
-  .card h2 { font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 26px; }
+  .card h2 { font-family: var(--pg-font); font-weight: 500; font-size: 26px; }
   .card p { margin-top: 10px; font-size: 14px; line-height: 1.55; color: var(--muted); }
   .start {
     margin-top: 26px;
@@ -320,7 +320,7 @@
     border-radius: 999px;
     background: var(--fg);
     color: var(--bg);
-    font: 600 15px 'Outfit', sans-serif;
+    font: 600 15px var(--pg-font);
     cursor: pointer;
     box-shadow: 0 10px 40px -10px color-mix(in srgb, var(--fg) 35%, transparent);
     transition: transform .2s ease, box-shadow .2s ease;
